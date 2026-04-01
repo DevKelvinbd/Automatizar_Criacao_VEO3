@@ -1,0 +1,11 @@
+{
+  "site_package_search_strategy": "pep561",
+  "search_path": [
+    "."
+  ],
+  "python_path": "/Users/kelvindias/Desktop/Trabalhos/Projetos de TI/Automatizar_Criacao_VEO3/venv/bin/python",
+  "python_version": "3.14",
+  "site_roots": [
+    "/Users/kelvindias/Desktop/Trabalhos/Projetos de TI/Automatizar_Criacao_VEO3/venv/lib/python3.14/site-packages"
+  ]
+}

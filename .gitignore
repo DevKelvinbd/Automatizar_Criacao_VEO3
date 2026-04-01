@@ -1,0 +1,30 @@
+# Ambiente virtual Python
+.venv/
+venv/
+env/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arquivos de sessão e dados temporários
+*.txt.bak
+relatorio_erros.txt
+
+# Playwright
+node_modules/
+package-lock.json
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Imagens de referência (não subir arquivos binários grandes)
+img_base/*.png
+img_base/*.jpg
+img_base/*.jpeg
+img_base/*.webp
