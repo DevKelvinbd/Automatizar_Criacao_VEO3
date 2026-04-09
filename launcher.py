@@ -20,11 +20,21 @@ import time
 from pathlib import Path
 
 # ── Diretórios ────────────────────────────────────────────────────────────────
+def _default_data_dir() -> Path:
+    """Retorna o diretório de dados do usuário conforme o sistema operacional."""
+    if sys.platform == "win32":
+        # Windows: C:\Users\usuario\AppData\Roaming\VEO3
+        return Path(os.environ.get("APPDATA", Path.home())) / "VEO3"
+    else:
+        # macOS
+        return Path.home() / "Library" / "Application Support" / "VEO3"
+
+
 if getattr(sys, "frozen", False):
-    # Dentro do .app — recursos read-only extraídos pelo PyInstaller
+    # Dentro do executável — recursos read-only extraídos pelo PyInstaller
     BUNDLE_DIR = Path(sys._MEIPASS)
     # Dados do usuário: gravável, persiste entre execuções
-    DATA_DIR = Path.home() / "Library" / "Application Support" / "VEO3"
+    DATA_DIR = _default_data_dir()
 else:
     BUNDLE_DIR = Path(__file__).parent
     DATA_DIR   = BUNDLE_DIR

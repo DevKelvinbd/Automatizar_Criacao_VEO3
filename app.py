@@ -24,8 +24,12 @@ from flask import Flask, Response, jsonify, render_template, request
 if getattr(sys, "frozen", False):
     # Binário congelado: recursos em BUNDLE_DIR (read-only), dados em DATA_DIR
     BUNDLE_DIR = Path(sys._MEIPASS)
-    DATA_DIR   = Path(os.environ.get("VEO3_DATA_DIR",
-                       str(Path.home() / "Library" / "Application Support" / "VEO3")))
+    _default = (
+        str(Path(os.environ.get("APPDATA", Path.home())) / "VEO3")
+        if sys.platform == "win32"
+        else str(Path.home() / "Library" / "Application Support" / "VEO3")
+    )
+    DATA_DIR   = Path(os.environ.get("VEO3_DATA_DIR", _default))
     # Subprocessos: reinvoca o próprio binário com flag bootstrap
     BOT_CMD    = [sys.executable, "--bot"]
     FATIAR_CMD = [sys.executable, "--fatiar"]
