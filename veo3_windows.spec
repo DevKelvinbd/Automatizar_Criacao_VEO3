@@ -11,6 +11,11 @@ BASE = Path(SPECPATH)
 # Coleta playwright completo (driver Node.js + dados)
 pw_datas, pw_binaries, pw_hidden = collect_all("playwright")
 
+# img_base é opcional (pode estar vazio ou ausente)
+extra_datas = []
+if (BASE / "img_base").exists():
+    extra_datas.append((str(BASE / "img_base"), "img_base"))
+
 a = Analysis(
     [str(BASE / "launcher.py")],
     pathex=[str(BASE)],
@@ -18,7 +23,7 @@ a = Analysis(
     datas=[
         (str(BASE / "templates"), "templates"),
         (str(BASE / "prompts"),   "prompts"),
-        (str(BASE / "img_base"),  "img_base"),
+        *extra_datas,
         *pw_datas,
     ],
     hiddenimports=[
