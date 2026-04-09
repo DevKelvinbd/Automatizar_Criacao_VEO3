@@ -134,7 +134,7 @@ def fatiar_texto(input_file: str, output_file: str, max_chars: int = MAX_CHARS) 
 
 
 if __name__ == "__main__":
-    base      = os.path.dirname(os.path.abspath(__file__))
+    base      = os.environ.get("VEO3_DATA_DIR") or os.path.dirname(os.path.abspath(__file__))
     roteiro   = os.path.join(base, 'roteiro.txt')
     takes_out = os.path.join(base, 'takes.txt')
 

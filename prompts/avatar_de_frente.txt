@@ -1,9 +1,6 @@
 # ============================================================
-# ARQUIVO DE PROMPTS — avatar_feminino.txt
+# ARQUIVO DE PROMPTS — avatar_de_frente.txt
 # ============================================================
-# Formato: cada prompt começa com "=== PROMPT XX ===" e termina
-# na linha seguinte que começa com "===" ou no fim do arquivo.
-#
 # Use {take} onde o texto do roteiro deve ser inserido.
 # O bot rotaciona: Take1→P1, Take2→P2, Take3→P3, Take4→P1...
 # ============================================================
@@ -16,3 +13,4 @@ A hyper-realistic human avatar speaking directly to the camera in a continuous s
 
 === PROMPT 03 ===
 A hyper-realistic human avatar speaking directly to the camera in a continuous shot. The avatar must remain visually identical across all frames and future generations, with zero changes in identity, lighting, skin tone, sharpness, contrast, or saturation. Prevent cumulative image degradation or color amplification. The camera is completely fixed. The avatar maintains constant eye contact and stable posture. Facial expressions are minimal and controlled. The avatar is actively speaking the following exact script (8 seconds duration): {take} Lip sync must be perfectly accurate and clearly visible. Hand movement pattern: both hands alternate in subtle movements, one hand slightly lifting while the other relaxes, creating a slow, natural conversational rhythm. Movements are small, controlled, and loopable. Motion must be smooth, symmetrical over time, and free of jitter, flicker, or deformation. Lighting must remain perfectly constant, with no shifts in exposure, shadows, or color. Background remains unchanged and stable. The animation must begin and end in the exact same neutral pose and identical visual state, enabling perfect continuation from the last frame. Audio: complete silence. No background music, no ambient sounds, no sound effects, no other voices or people speaking. The only audio is the avatar's own voice. No visual drift, no morphing, no style inconsistency, no saturation increase, no loss of quality.
+

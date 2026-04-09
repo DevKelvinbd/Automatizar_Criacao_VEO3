@@ -28,3 +28,26 @@ img_base/*.png
 img_base/*.jpg
 img_base/*.jpeg
 img_base/*.webp
+
+# Videos gerados
+videos_gerados/
+
+# Chrome profile gerado localmente
+.chrome_profile_veo3/
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
+
+# Dados do usuário (conteúdo local, não deve ir para o repo)
+roteiro.txt
+takes.txt
+
+# Imagens de erros (geradas em runtime)
+erros/*.png
+erros/*.jpg
+
+# Variáveis de ambiente
+.env
+.env.*

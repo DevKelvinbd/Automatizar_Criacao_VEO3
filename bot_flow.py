@@ -7,15 +7,18 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 # CONFIGURAÇÃO — AJUSTE AQUI QUANDO NECESSÁRIO
 # ============================================================
 
-# Número do primeiro take no takes.txt atual (ex: 15 se os takes 1-14 já foram feitos)
-START_TAKE_NUMBER = 1
+# Número do primeiro take no takes.txt atual (ex: 5 se os takes 1-4 já foram feitos)
+# Pode ser sobrescrito via variável de ambiente VEO3_START_TAKE (definida pela interface web)
+START_TAKE_NUMBER = int(os.environ.get("VEO3_START_TAKE", 1))
 
 # ⭐ ARQUIVO DE PROMPTS — altere aqui para trocar o conjunto de prompts
-# Os arquivos ficam na pasta prompts/ (ex: avatar_feminino.txt, avatar_masculino.txt)
-PROMPTS_FILE = "avatar_segurando_objetos.txt"
+PROMPTS_FILE = os.environ.get("VEO3_PROMPTS_FILE", "avatar_de_frente.txt")
 
-# Pasta com a imagem de referência (será reutilizada em todos os takes)
-IMG_BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "img_base")
+# Diretório de dados (gravável) — usa VEO3_DATA_DIR se definido (modo frozen)
+_DATA_DIR    = os.environ.get("VEO3_DATA_DIR") or os.path.dirname(os.path.abspath(__file__))
+
+# Pasta com a imagem de referência
+IMG_BASE_DIR = os.path.join(_DATA_DIR, "img_base")
 
 # Pausa entre takes (segundos)
 PAUSA_ENTRE_TAKES = 3
@@ -112,20 +115,9 @@ _PLACEHOLDER = [
 # ============================================================
 
 def carregar_prompts(nome_arquivo=None):
-    """Lê os prompts do arquivo em prompts/<nome_arquivo>.
-
-    Formato do arquivo:
-        === PROMPT 01 ===
-        Texto do prompt com {take} ...
-
-        === PROMPT 02 ===
-        ...
-
-    Retorna lista de 3 strings (ou mais, se definidos).
-    """
     if nome_arquivo is None:
         nome_arquivo = PROMPTS_FILE
-    pasta   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
+    pasta   = os.path.join(_DATA_DIR, "prompts")
     caminho = os.path.join(pasta, nome_arquivo)
 
     if not os.path.exists(caminho):
@@ -165,10 +157,9 @@ def carregar_prompts(nome_arquivo=None):
 
 
 def setup_paths():
-    pwd = os.path.dirname(os.path.abspath(__file__))
-    takes_file = os.path.join(pwd, "takes.txt")
-    erros_dir  = os.path.join(pwd, "erros")
-    videos_dir = os.path.join(pwd, "videos_gerados")
+    takes_file = os.path.join(_DATA_DIR, "takes.txt")
+    erros_dir  = os.path.join(_DATA_DIR, "erros")
+    videos_dir = os.path.join(_DATA_DIR, "videos_gerados")
     os.makedirs(erros_dir,  exist_ok=True)
     os.makedirs(videos_dir, exist_ok=True)
     return takes_file, erros_dir, videos_dir
@@ -420,15 +411,29 @@ def main():
                 print("Nenhuma aba aberta. Abra o Google Flow antes de rodar o bot.")
                 return
 
-            # Busca a aba do Google Flow pela URL — ignora abas de configuração, downloads, etc.
+            # Busca a aba do Google Flow pela URL — prioriza a aba do PROJETO
+            # (URLs com /project/ ou /tools/flow/) sobre a página inicial/about
             page = None
+
+            # 1ª prioridade: aba do projeto (tem "project" na URL)
             for p_candidate in context.pages:
                 url = p_candidate.url
-                if "flow.google" in url or "labs.google" in url or "ai.google" in url:
+                if ("labs.google" in url or "flow.google" in url) and "project" in url:
                     page = p_candidate
+                    print(f"   🎯 Aba do projeto encontrada: {url[:80]}...")
                     break
+
+            # 2ª prioridade: qualquer aba do Flow/labs (exceto about)
             if page is None:
-                # Fallback: última aba aberta
+                for p_candidate in context.pages:
+                    url = p_candidate.url
+                    if ("flow.google" in url or "labs.google" in url or "ai.google" in url) \
+                            and "about" not in url:
+                        page = p_candidate
+                        break
+
+            # Fallback: última aba aberta
+            if page is None:
                 page = context.pages[-1]
 
             page.set_default_timeout(15000)
