@@ -56,6 +56,6 @@ exe = EXE(
     debug=False,
     strip=False,
     upx=False,          # UPX pode corromper binários Node.js embutidos
-    console=True,       # Mantém terminal para ver logs (mude para False na versão final)
+    console=False,      # Sem janela de terminal
     icon=None,
 )
