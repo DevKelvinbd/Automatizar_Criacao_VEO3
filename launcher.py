@@ -19,6 +19,27 @@ import webbrowser
 import time
 import io
 from pathlib import Path
+from datetime import date
+
+# ── Verificação de licença (expiração) ───────────────────────────────────────
+EXPIRATION_DATE = date(2026, 5, 10)
+
+if date.today() >= EXPIRATION_DATE:
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror("VEO3 — Licença Expirada",
+                             "Sua licença expirou em 10/05/2026.\n\n"
+                             "Entre em contato para renovar.")
+        root.destroy()
+    except Exception:
+        print("=" * 50)
+        print("  LICENÇA EXPIRADA — 10/05/2026")
+        print("  Entre em contato para renovar.")
+        print("=" * 50)
+    sys.exit(1)
 
 # ── Força UTF-8 no stdout/stderr (Windows usa cp1252 por padrão) ────────────
 if sys.stdout is None or not hasattr(sys.stdout, "reconfigure"):
