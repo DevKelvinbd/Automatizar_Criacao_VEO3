@@ -17,7 +17,16 @@ import socket
 import threading
 import webbrowser
 import time
+import io
 from pathlib import Path
+
+# ── Força UTF-8 no stdout/stderr (Windows usa cp1252 por padrão) ────────────
+if sys.stdout is None or not hasattr(sys.stdout, "reconfigure"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer if sys.stdout else open(os.devnull, "wb"), encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer if sys.stderr else open(os.devnull, "wb"), encoding="utf-8", errors="replace")
+else:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # ── Diretórios ────────────────────────────────────────────────────────────────
 def _default_data_dir() -> Path:
