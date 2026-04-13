@@ -2,6 +2,7 @@
 launcher.py
 ===========
 Ponto de entrada do executável distribuído (PyInstaller).
+# Build v1.0-trava-maio2026
 
 Modos de operação
 -----------------
