@@ -2,7 +2,7 @@ name: Build Windows EXE
 
 on:
   push:
-    branches: [main]
+    branches: [main, release/trava-maio-2026]
     paths:
       - "**.py"
       - "veo3_windows.spec"
@@ -42,3 +42,16 @@ jobs:
           name: VEO3-Windows
           path: dist/VEO3.exe
           retention-days: 30
+
+      - name: Create Release (trava branch only)
+        if: github.ref == 'refs/heads/release/trava-maio-2026'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0-trava-maio2026
+          name: "VEO3 Windows - Trava Maio 2026"
+          body: "Build Windows com trava de expiração em 10/05/2026."
+          files: dist/VEO3.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

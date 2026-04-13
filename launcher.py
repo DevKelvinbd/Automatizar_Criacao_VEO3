@@ -18,28 +18,8 @@ import threading
 import webbrowser
 import time
 import io
-from pathlib import Path
 from datetime import date
-
-# ── Verificação de licença (expiração) ───────────────────────────────────────
-EXPIRATION_DATE = date(2026, 5, 10)
-
-if date.today() >= EXPIRATION_DATE:
-    try:
-        import tkinter as tk
-        from tkinter import messagebox
-        root = tk.Tk()
-        root.withdraw()
-        messagebox.showerror("VEO3 — Licença Expirada",
-                             "Sua licença expirou em 10/05/2026.\n\n"
-                             "Entre em contato para renovar.")
-        root.destroy()
-    except Exception:
-        print("=" * 50)
-        print("  LICENÇA EXPIRADA — 10/05/2026")
-        print("  Entre em contato para renovar.")
-        print("=" * 50)
-    sys.exit(1)
+from pathlib import Path
 
 # ── Força UTF-8 no stdout/stderr (Windows usa cp1252 por padrão) ────────────
 if sys.stdout is None or not hasattr(sys.stdout, "reconfigure"):
@@ -73,16 +53,184 @@ else:
 os.environ["VEO3_BUNDLE_DIR"] = str(BUNDLE_DIR)
 os.environ["VEO3_DATA_DIR"]   = str(DATA_DIR)
 
+# ── Trava de expiração ────────────────────────────────────────────────────────
+_EXPIRATION_DATE = date(2026, 5, 10)
+
+def _check_expiration() -> None:
+    """Bloqueia completamente o sistema após a data de expiração."""
+    if date.today() >= _EXPIRATION_DATE:
+        msg = (
+            "Esta versão do VEO3 expirou em 10/05/2026.\n"
+            "Entre em contato com o suporte para obter uma versão atualizada."
+        )
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk()
+            root.withdraw()
+            messagebox.showerror("VEO3 — Versão Expirada", msg)
+            root.destroy()
+        except Exception:
+            print("=" * 55)
+            print("  VEO3 — VERSÃO EXPIRADA")
+            print(f"  {msg}")
+            print("=" * 55)
+        sys.exit(1)
+
+# ── Verificação de licença ────────────────────────────────────────────────────
+
+def _show_activation_screen(client) -> None:
+    """Tkinter window for license key activation. Blocks until success or close."""
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+
+        root = tk.Tk()
+        root.title("VEO3 — Ativação de Licença")
+        root.geometry("480x260")
+        root.resizable(False, False)
+
+        tk.Label(root, text="🔑 Ativar VEO3 Automator", font=("Helvetica", 16, "bold")).pack(pady=(20, 5))
+        tk.Label(root, text="Insira sua chave de licença para continuar.", font=("Helvetica", 11)).pack(pady=(0, 15))
+
+        entry_var = tk.StringVar()
+        entry = tk.Entry(root, textvariable=entry_var, width=36, font=("Courier", 13), justify="center")
+        entry.pack(pady=5)
+        entry.insert(0, "VEO3-")
+
+        status_var = tk.StringVar()
+        status_label = tk.Label(root, textvariable=status_var, font=("Helvetica", 10), fg="red")
+        status_label.pack(pady=5)
+
+        activated = [False]
+
+        def on_activate():
+            key = entry_var.get().strip()
+            if not key or len(key) < 10:
+                status_var.set("Chave inválida. Formato: VEO3-XXXX-XXXX-XXXX-XXXX")
+                return
+            status_var.set("Ativando...")
+            root.update()
+            result = client.activate(key)
+            if result.success:
+                activated[0] = True
+                root.destroy()
+            else:
+                status_var.set(f"Erro: {result.error}")
+
+        tk.Button(root, text="Ativar", command=on_activate, width=18, font=("Helvetica", 11, "bold"),
+                  bg="#C62828", fg="white", activebackground="#8E0000", activeforeground="white").pack(pady=10)
+
+        root.protocol("WM_DELETE_WINDOW", lambda: (root.destroy(),))
+        root.mainloop()
+
+        if not activated[0]:
+            sys.exit(0)
+    except ImportError:
+        # No tkinter — console fallback
+        print("=" * 55)
+        print("  VEO3 — ATIVAÇÃO DE LICENÇA")
+        print("  Insira sua chave (VEO3-XXXX-XXXX-XXXX-XXXX):")
+        print("=" * 55)
+        key = input("> ").strip()
+        if not key:
+            sys.exit(0)
+        result = client.activate(key)
+        if result.success:
+            print("Licença ativada com sucesso!")
+        else:
+            print(f"Erro: {result.error}")
+            sys.exit(1)
+
+
+def _show_blocked_screen(status) -> None:
+    """Show error popup for blocked license states."""
+    from licensing.license_client import LicenseStatus
+
+    messages = {
+        LicenseStatus.REVOKED: (
+            "Licença Revogada",
+            "Sua licença foi revogada.\nEntre em contato com o suporte."
+        ),
+        LicenseStatus.EXPIRED_OFFLINE: (
+            "Período Offline Expirado",
+            "Você está offline há mais de 7 dias.\nConecte-se à internet para validar sua licença."
+        ),
+        LicenseStatus.EXPIRED: (
+            "Licença Expirada",
+            "Sua licença expirou.\nEntre em contato para renovar."
+        ),
+    }
+    title, msg = messages.get(status, ("Licença Inválida", "Sua licença não é válida."))
+
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror(f"VEO3 — {title}", msg)
+        root.destroy()
+    except Exception:
+        print("=" * 55)
+        print(f"  VEO3 — {title}")
+        print(f"  {msg}")
+        print("=" * 55)
+
+
+def _license_watchdog(client, interval_hours: float = 6.0) -> None:
+    """Background thread that re-validates the license periodically."""
+    from licensing.license_client import LicenseStatus
+    while True:
+        time.sleep(interval_hours * 3600)
+        try:
+            status = client.validate()
+            os.environ["VEO3_LICENSE_STATUS"] = status.value
+            if status in (LicenseStatus.REVOKED, LicenseStatus.EXPIRED_OFFLINE, LicenseStatus.EXPIRED):
+                _show_blocked_screen(status)
+                os._exit(1)
+        except Exception:
+            pass  # Silently continue — next cycle will retry
+
+
+def _run_license_check() -> None:
+    """Execute license validation flow. Called before Flask starts."""
+    # Add licensing module to path (needed when frozen)
+    sys.path.insert(0, str(BUNDLE_DIR))
+
+    from licensing.license_client import LicenseClient, LicenseStatus
+
+    client = LicenseClient()
+    status = client.validate()
+
+    if status == LicenseStatus.NOT_ACTIVATED:
+        _show_activation_screen(client)
+        # Re-validate after activation
+        status = client.validate()
+
+    if status in (LicenseStatus.REVOKED, LicenseStatus.EXPIRED_OFFLINE, LicenseStatus.EXPIRED):
+        _show_blocked_screen(status)
+        sys.exit(1)
+    elif status == LicenseStatus.GRACE_PERIOD:
+        pass  # Allow to run, UI will show warning
+
+    os.environ["VEO3_LICENSE_STATUS"] = status.value
+
+    # Store client reference for watchdog
+    return client
+
+
 # ── Bootstrap de subprocesso ─────────────────────────────────────────────────
 # Quando o binário é relançado como subprocesso (ex: para rodar o bot),
 # ele checa o argumento e executa só aquele módulo, sem iniciar o Flask.
 if __name__ == "__main__" and "--bot" in sys.argv:
+    _check_expiration()
     sys.path.insert(0, str(BUNDLE_DIR))
     import bot_flow
     bot_flow.main()
     sys.exit(0)
 
 if __name__ == "__main__" and "--fatiar" in sys.argv:
+    _check_expiration()
     sys.path.insert(0, str(BUNDLE_DIR))
     import fatiador
     roteiro = DATA_DIR / "roteiro.txt"
@@ -145,12 +293,21 @@ def _ensure_playwright() -> None:
 
 
 def main() -> None:
+    _check_expiration()
     sys.path.insert(0, str(BUNDLE_DIR))
 
     _setup_data_dir()
+
+    # License check (blocks if not activated)
+    license_client = _run_license_check()
+
     _ensure_playwright()
 
     port = _free_port()
+
+    # Start license watchdog (every 6 hours)
+    if license_client:
+        threading.Thread(target=_license_watchdog, args=(license_client,), daemon=True).start()
 
     # Importa e inicia Flask
     import app as flask_app
