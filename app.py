@@ -47,20 +47,6 @@ PROMPTS_DIR.mkdir(parents=True, exist_ok=True)
 
 app = Flask(__name__, template_folder=str(BUNDLE_DIR / "templates"))
 
-# ── License client (lazy init) ───────────────────────────────────────────────
-_license_client = None
-
-def _get_license_client():
-    global _license_client
-    if _license_client is None:
-        try:
-            sys.path.insert(0, str(BUNDLE_DIR))
-            from licensing.license_client import LicenseClient
-            _license_client = LicenseClient()
-        except Exception:
-            pass
-    return _license_client
-
 _bot_process: subprocess.Popen | None = None
 _log_queue: queue.Queue = queue.Queue()
 
@@ -331,32 +317,5 @@ def status():
     return jsonify({"running": running})
 
 
-# ── License routes ────────────────────────────────────────────────────────────
-
-@app.route("/api/license/status", methods=["GET"])
-def license_status():
-    client = _get_license_client()
-    info = client.get_stored_license_info() if client else None
-    return jsonify({
-        "status": os.environ.get("VEO3_LICENSE_STATUS", "unknown"),
-        "info": info,
-    })
-
-
-@app.route("/api/license/deactivate", methods=["POST"])
-def license_deactivate():
-    client = _get_license_client()
-    if not client:
-        return jsonify({"ok": False, "error": "License client not available"}), 500
-    ok = client.deactivate()
-    if ok:
-        threading.Timer(1.0, lambda: os._exit(0)).start()
-    return jsonify({"ok": ok})
-
-
 if __name__ == "__main__":
-    from datetime import date
-    if date.today() >= date(2026, 5, 10):
-        print("Esta versão do VEO3 expirou em 10/05/2026.")
-        sys.exit(1)
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
